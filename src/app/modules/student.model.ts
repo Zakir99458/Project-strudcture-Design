@@ -72,45 +72,57 @@ const localGuardianSchema = new Schema<TLocalGuardian>({
   },
 })
 
-const studentSchema = new Schema<TStudent, TStudentModel, TStudentMethods>({
-  id: { type: String },
-  password: {
-    type: String,
-    required: [true, 'Password is required...'],
+const studentSchema = new Schema<TStudent, TStudentModel, TStudentMethods>(
+  {
+    id: { type: String },
+    password: {
+      type: String,
+      required: [true, 'Password is required...'],
+    },
+    name: {
+      type: userNameSchema,
+      required: true,
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female'], // Correctly define enum
+      required: true,
+    },
+    dateOfBirth: { type: String },
+    email: { type: String, required: true },
+    contactNumber: { type: String, required: true },
+    emergencyContactNumber: { type: String, required: true },
+    bloodGroup: {
+      type: String,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Correctly define enum
+      required: true,
+    },
+    presentAddress: { type: String, required: true },
+    permanentAddress: { type: String, required: true },
+    guardian: guardianSchema,
+    localGuardian: localGuardianSchema,
+    profileImage: { type: String },
+    isActive: {
+      type: String,
+      enum: ['active', 'blocked'], // Correctly define enum
+      required: true,
+      default: 'active',
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
-  name: {
-    type: userNameSchema,
-    required: true,
+  {
+    toJSON: {
+      virtuals: true,
+    },
   },
-  gender: {
-    type: String,
-    enum: ['male', 'female'], // Correctly define enum
-    required: true,
-  },
-  dateOfBirth: { type: String },
-  email: { type: String, required: true },
-  contactNumber: { type: String, required: true },
-  emergencyContactNumber: { type: String, required: true },
-  bloodGroup: {
-    type: String,
-    enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], // Correctly define enum
-    required: true,
-  },
-  presentAddress: { type: String, required: true },
-  permanentAddress: { type: String, required: true },
-  guardian: guardianSchema,
-  localGuardian: localGuardianSchema,
-  profileImage: { type: String },
-  isActive: {
-    type: String,
-    enum: ['active', 'blocked'], // Correctly define enum
-    required: true,
-    default: 'active',
-  },
-  isDeleted: {
-    type: Boolean,
-    default: false,
-  },
+)
+
+//  Virtul: to show full name to the user but it is not exist in the data base
+studentSchema.virtual('fullName').get(function () {
+  return `${this.name.firstName} ${this.name.middleName} ${this.name.lastName}`
 })
 
 // Pre and Post Middleware
@@ -144,6 +156,12 @@ studentSchema.post('save', function (doc, next) {
 
 // Query Middleware
 studentSchema.pre('find', function (next) {
+  this.find({ isDeleted: { $ne: true } })
+  next()
+  // console.log(this)
+})
+
+studentSchema.pre('findOne', function (next) {
   this.find({ isDeleted: { $ne: true } })
   next()
   // console.log(this)
